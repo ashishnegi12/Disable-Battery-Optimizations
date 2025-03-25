@@ -37,16 +37,6 @@ public class DisableBatteryOptimizationPlugin implements FlutterPlugin, Activity
     private String manBatteryTitle;
     private String manBatteryMessage;
 
-    // V1 embedding (backward compatibility)
-    public static void registerWith(PluginRegistry.Registrar registrar) {
-        final DisableBatteryOptimizationPlugin plugin = new DisableBatteryOptimizationPlugin();
-        plugin.mActivity = registrar.activity();
-        plugin.mContext = registrar.context();
-        
-        final MethodChannel channel = new MethodChannel(registrar.messenger(), CHANNEL_NAME);
-        channel.setMethodCallHandler(plugin);
-    }
-
     // V2 embedding
     @Override
     public void onAttachedToEngine(@NonNull FlutterPluginBinding binding) {
