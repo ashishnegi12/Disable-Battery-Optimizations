@@ -21,7 +21,6 @@ import io.flutter.plugin.common.MethodCall;
 import io.flutter.plugin.common.MethodChannel;
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler;
 import io.flutter.plugin.common.MethodChannel.Result;
-import io.flutter.plugin.common.PluginRegistry;
 
 /**
  * DisableBatteryOptimizationPlugin
@@ -30,8 +29,6 @@ public class DisableBatteryOptimizationPlugin implements FlutterPlugin, Activity
 
     private Context mContext;
     private Activity mActivity;
-
-    // These are null when not using v2 embedding.
     private MethodChannel channel;
 
     private static final int REQUEST_DISABLE_BATTERY_OPTIMIZATIONS = 2244;
@@ -43,34 +40,44 @@ public class DisableBatteryOptimizationPlugin implements FlutterPlugin, Activity
     private String manBatteryTitle;
     private String manBatteryMessage;
 
-
-    // This static function is optional and equivalent to onAttachedToEngine. It supports the old
-    // pre-Flutter-1.12 Android projects. You are encouraged to continue supporting
-    // plugin registration via this function while apps migrate to use the new Android APIs
-    // post-flutter-1.12 via https://flutter.dev/go/android-project-migration.
-    //
-    // It is encouraged to share logic between onAttachedToEngine and registerWith to keep
-    // them functionally equivalent. Only one of onAttachedToEngine or registerWith will be called
-    // depending on the user's project. onAttachedToEngine or registerWith must both be defined
-    // in the same class.
-    public static void registerWith(PluginRegistry.Registrar registrar) {
-        final MethodChannel channel = new MethodChannel(registrar.messenger(), CHANNEL_NAME);
-        channel.setMethodCallHandler(new DisableBatteryOptimizationPlugin(registrar.activity(), registrar.activeContext()));
-    }
-
-    private DisableBatteryOptimizationPlugin(Activity activity, Context context) {
-        if (activity != null)
-            mActivity = activity;
-        if (context != null)
-            mContext = context;
-    }
-
-    /**
-     * Default constructor for DisableBatteryOptimizationPlugin.
-     *
-     * <p>Use this constructor when adding this plugin to an app with v2 embedding.
-     */
     public DisableBatteryOptimizationPlugin() {
+        // Default constructor for V2 embedding
+    }
+
+    @Override
+    public void onAttachedToEngine(@NonNull FlutterPluginBinding binding) {
+        channel = new MethodChannel(binding.getBinaryMessenger(), CHANNEL_NAME);
+        channel.setMethodCallHandler(this);
+        mContext = binding.getApplicationContext();
+    }
+
+    @Override
+    public void onDetachedFromEngine(@NonNull FlutterPluginBinding binding) {
+        channel.setMethodCallHandler(null);
+        channel = null;
+        mContext = null;
+    }
+
+    @Override
+    public void onAttachedToActivity(@NonNull ActivityPluginBinding binding) {
+        mActivity = binding.getActivity();
+        mContext = mActivity.getApplicationContext();
+    }
+
+    @Override
+    public void onDetachedFromActivityForConfigChanges() {
+        mActivity = null;
+    }
+
+    @Override
+    public void onReattachedToActivityForConfigChanges(@NonNull ActivityPluginBinding binding) {
+        mActivity = binding.getActivity();
+        mContext = mActivity.getApplicationContext();
+    }
+
+    @Override
+    public void onDetachedFromActivity() {
+        mActivity = null;
     }
 
     @Override
@@ -155,42 +162,8 @@ public class DisableBatteryOptimizationPlugin implements FlutterPlugin, Activity
         }
     }
 
-    @Override
-    public void onAttachedToEngine(FlutterPluginBinding binding) {
-
-        channel = new MethodChannel(binding.getBinaryMessenger(), CHANNEL_NAME);
-        mContext = binding.getApplicationContext();
-    }
-
-    @Override
-    public void onDetachedFromEngine(@NonNull FlutterPluginBinding binding) {
-    }
-
-    @Override
-    public void onAttachedToActivity(ActivityPluginBinding binding) {
-        mActivity = binding.getActivity();
-        mContext = mActivity.getApplicationContext();
-        channel.setMethodCallHandler(this);
-    }
-
-    @Override
-    public void onDetachedFromActivityForConfigChanges() {
-        mActivity = null;
-    }
-
-    @Override
-    public void onReattachedToActivityForConfigChanges(ActivityPluginBinding binding) {
-        mActivity = binding.getActivity();
-    }
-
-    @Override
-    public void onDetachedFromActivity() {
-        mActivity = null;
-        channel.setMethodCallHandler(null);
-    }
-
     private void showAutoStartEnabler(@NonNull final BatteryOptimizationUtil.OnBatteryOptimizationAccepted positiveCallback,
-                                      @NonNull final BatteryOptimizationUtil.OnBatteryOptimizationCanceled negativeCallback) {
+                                    @NonNull final BatteryOptimizationUtil.OnBatteryOptimizationCanceled negativeCallback) {
         BatteryOptimizationUtil.showBatteryOptimizationDialog(
                 mActivity,
                 KillerManager.Actions.ACTION_AUTOSTART,
